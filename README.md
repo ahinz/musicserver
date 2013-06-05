@@ -23,6 +23,10 @@ The client will ping the server and start playing music. Any number of
 clients can connect to the music server. As songs complete each server
 is queried in a round-robin fashion for the next song to play.
 
+Right now clients aren't really dynamic; you provide them a "--file"
+argument with that contains a bunch of paths to music files (separated
+by newlines)
+
 ## TODO
 
 - Dropping clients will probably cause a crash... probably should drop
