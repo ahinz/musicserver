@@ -52,11 +52,11 @@
    (fn []
      (let [song @(lamina/read-channel play-channel)]
        ; Start downloading the next song
-       (lamina/enqueue download-channel "")))))
+       (lamina/enqueue download-channel "")
        (println "[Player] Starting song:" song)
        (play-song-mplayer song)
        (println "[Player] Finished song:" song)
-       (.delete (java.io.File. song)))
+       (.delete (java.io.File. song))))))
 
 (def clients (atom []))
 
@@ -71,9 +71,16 @@
      (let [last-song @(lamina/read-channel download-channel)
            client (rotate-clients)]
        (if client
-         (let [song (fetch-and-mark client)]
-           (println "[Downloader] Queue song:" song)
-           (lamina/enqueue play-channel song))
+         (try
+           (let [song (fetch-and-mark client)]
+             (println "[Downloader] Queue song:" song)
+             (lamina/enqueue play-channel song))
+           (catch Exception e
+             (do
+               (println "Client is acting up..." client)
+               (Thread/sleep 2000)
+               (lamina/enqueue download-channel ""))))
+
          (do
            (println "[Warn] No clients connected")
            (Thread/sleep 2000)
