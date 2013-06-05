@@ -7,14 +7,16 @@ A Clojure app designed to allow coworkers to share music.
 Listen to music with coworkers and friends! On the computer with
 speakers start the server:
 
-```
+```bash
 $ lein run server
 ```
 
 To add clients to the server have each client run something like:
 
-```
-$ lein run client --port 10100 --file example.txt --server http://localhost:3131
+```bash
+$ lein run client --port 10100 --file example.txt \
+                  --server http://localhost:3131 \
+                  --bind <ip address of client>
 ```
 
 The client will ping the server and start playing music. Any number of

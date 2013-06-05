@@ -40,7 +40,7 @@
 
   (route/not-found "<h1>Page not found</h1>"))
 
-(defn start-client [port file server]
+(defn start-client [port file server bindto]
   (if file
     (doseq [f (.split (slurp file) "\n")]
       (println "[Client] Adding song:" f)
@@ -53,4 +53,4 @@
   (println "Contacting server" server)
   (if server
     (client/post (str server "/add-client")
-                 {:body (json/write-str {:client (str "http://localhost:" port)})})))
+                 {:body (json/write-str {:client (str "http://" bindto ":" port)})})))
