@@ -17,24 +17,7 @@
   (doall (repeatedly f))) ; Since repeatedly is lazy, we wrap it in doall
 
 (defn play-song-mplayer [s]
-  (:exit (sh mplayer-bin "-af" "volume=15" s)))
-
-(defn player []
-  (loop-forever
-   (fn []
-     (let [song @(lamina/read-channel play-channel)]
-       (println "[Player] Starting song:" song)
-       (play-song-mplayer song)
-       (println "[Player] Finished song:" song)
-       (lamina/enqueue download-channel "")))))
-
-(defn downloader []
-  (loop-forever
-   (fn []
-     (let [last-song @(lamina/read-channel download-channel)
-           song (fetch-next-song "http://localhost:10100")]
-       (println "[Downloader] Queue song:" song)
-       (lamina/enqueue play-channel song)))))
+  (:exit (sh mplayer-bin s)))
 
 (defn fetch-next-song [url]
   (let [song (json/read-str (slurp (str url "/next?n=1")))]
@@ -49,7 +32,6 @@
     (when song
       (let [buffer (byte-array 4000000)
             download-to (str download-dir (str (rand-int 1000000)) (.replaceAll song "/" "__"))]
-       (println "Song: " song)
        (mark-song-as-done url song)
        (with-open [input (io/input-stream (str url "/path?song="
                                                (java.net.URLEncoder/encode song)))
@@ -60,6 +42,23 @@
                (.write output buffer 0 n)
                (recur)))))
        download-to))))
+
+(defn player []
+  (loop-forever
+   (fn []
+     (let [song @(lamina/read-channel play-channel)]
+       (println "[Player] Starting song:" song)
+       (play-song-mplayer song)
+       (println "[Player] Finished song:" song)
+       (lamina/enqueue download-channel "")))))
+
+(defn downloader []
+  (loop-forever
+   (fn []
+     (let [last-song @(lamina/read-channel download-channel)
+           song (fetch-and-mark "http://localhost:10100")]
+       (println "[Downloader] Queue song:" song)
+       (lamina/enqueue play-channel song)))))
 
 (defn start-server [clients]
   (println "[Startup] Clients:" clients)
