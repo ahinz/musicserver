@@ -4,6 +4,7 @@
    ring.adapter.jetty
    [clojure.string :only [join]])
   (:require
+   [clj-http.client :as client]
    [clojure.java.io :as io]
    [clojure.data.json :as json]
    [compojure.route :as route]
@@ -39,10 +40,17 @@
 
   (route/not-found "<h1>Page not found</h1>"))
 
-(defn start-client [port file]
+(defn start-client [port file server]
   (if file
     (doseq [f (.split (slurp file) "\n")]
       (println "[Client] Adding song:" f)
       (enqueue f)))
 
-  (run-jetty (handler/site app) {:port port}))
+  (println "Starting jetty...")
+  (run-jetty (handler/site app) {:port port
+                                 :join? false})
+
+  (println "Contacting server" server)
+  (if server
+    (client/post (str server "/add-client")
+                 {:body (json/write-str {:client (str "http://localhost:" port)})})))

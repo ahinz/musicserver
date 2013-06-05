@@ -1,9 +1,13 @@
 (ns sounds.server
   (:use
+   compojure.core
+   ring.adapter.jetty
    [clojure.java.shell :only [sh]])
   (:require
    [clojure.java.io :as io]
    [clj-http.client :as client]
+   [compojure.route :as route]
+   [compojure.handler :as handler]
    [clojure.data.json :as json]
    [lamina.core :as lamina]))
 
@@ -50,22 +54,52 @@
        (println "[Player] Starting song:" song)
        (play-song-mplayer song)
        (println "[Player] Finished song:" song)
+       (.delete (java.io.File. song))
        (lamina/enqueue download-channel "")))))
+
+(def clients (atom []))
+
+(defn rotate-clients []
+  (let [c (first @clients)]
+    (if c (swap! clients (fn [clients] (conj (vec (drop 1 clients)) (first clients)))))
+    c))
 
 (defn downloader []
   (loop-forever
    (fn []
      (let [last-song @(lamina/read-channel download-channel)
-           song (fetch-and-mark "http://localhost:10100")]
-       (println "[Downloader] Queue song:" song)
-       (lamina/enqueue play-channel song)))))
+           client (rotate-clients)]
+       (if client
+         (let [song (fetch-and-mark client)]
+           (println "[Downloader] Queue song:" song)
+           (lamina/enqueue play-channel song))
+         (do
+           (println "[Warn] No clients connected")
+           (Thread/sleep 2000)
+           (lamina/enqueue download-channel "")))))))
 
-(defn start-server [clients]
-  (println "[Startup] Clients:" clients)
+(defroutes app
+  (POST "/add-client" {body :body}
+        (let [body (json/read-str (slurp body))
+              client (get body "client")]
+          (swap! clients (fn [clients] (vec (concat [client] clients))))
+
+          ;; Queue up a song from the new client
+          (lamina/enqueue download-channel "")
+          (json/write-str {:status "OK"})))
+
+  (route/not-found "<h1>Page not found</h1>"))
+
+(defn start-server [base-clients]
+  (println "[Startup] Clients:" base-clients)
+  (swap! clients (fn [_] base-clients))
+
   (-> (Thread. downloader) .start)
   (-> (Thread. player) .start)
 
   ;; Trigger 3 downloads
   (doseq [i (range 3)]
     (lamina/enqueue download-channel ""))
-)
+
+  ;; Start listener
+  (run-jetty (handler/site app) {:port 3131}))
