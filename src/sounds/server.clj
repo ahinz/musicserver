@@ -76,7 +76,12 @@
          (try
            (let [song (fetch-and-mark client)]
              (println "[Downloader] Queue song:" song)
-             (lamina/enqueue play-channel song))
+             (if song
+               (lamina/enqueue play-channel song)
+               (do
+                 (println "Invalid song from client" client)
+                 (Thread/sleep 2000)
+                 (lamina/enqueue download-channel ""))))
            (catch Exception e
              (do
                (println "Client is acting up..." client)
