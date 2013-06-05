@@ -51,11 +51,12 @@
   (loop-forever
    (fn []
      (let [song @(lamina/read-channel play-channel)]
+       ; Start downloading the next song
+       (lamina/enqueue download-channel "")))))
        (println "[Player] Starting song:" song)
        (play-song-mplayer song)
        (println "[Player] Finished song:" song)
-       (.delete (java.io.File. song))
-       (lamina/enqueue download-channel "")))))
+       (.delete (java.io.File. song)))
 
 (def clients (atom []))
 
@@ -82,10 +83,10 @@
   (POST "/add-client" {body :body}
         (let [body (json/read-str (slurp body))
               client (get body "client")]
-          (swap! clients (fn [clients] (vec (concat [client] clients))))
+          (swap! clients (fn [clients] (vec (distinct (concat [client] clients)))))
 
           ;; Queue up a song from the new client
-          (lamina/enqueue download-channel "")
+          ;; (lamina/enqueue download-channel "")
           (json/write-str {:status "OK"})))
 
   (route/not-found "<h1>Page not found</h1>"))
@@ -97,9 +98,7 @@
   (-> (Thread. downloader) .start)
   (-> (Thread. player) .start)
 
-  ;; Trigger 3 downloads
-  (doseq [i (range 3)]
-    (lamina/enqueue download-channel ""))
+  (lamina/enqueue download-channel ""))
 
   ;; Start listener
   (run-jetty (handler/site app) {:port 3131}))
