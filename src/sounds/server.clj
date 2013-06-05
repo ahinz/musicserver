@@ -112,7 +112,7 @@
   (-> (Thread. downloader) .start)
   (-> (Thread. player) .start)
 
-  (lamina/enqueue download-channel ""))
+  (lamina/enqueue download-channel "")
 
   ;; Start listener
   (run-jetty (handler/site app) {:port 3131}))
