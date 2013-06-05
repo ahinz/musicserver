@@ -66,8 +66,10 @@
     c))
 
 (defn downloader []
+  (println "[Downloader] Starting....")
   (loop-forever
    (fn []
+     (println "[Downloader] Running and waiting...")
      (let [last-song @(lamina/read-channel download-channel)
            client (rotate-clients)]
        (if client
