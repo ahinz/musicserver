@@ -4,12 +4,16 @@
    ring.adapter.jetty
    [clojure.java.shell :only [sh]])
   (:require
+   [sounds.tags :as tags]
    [clojure.java.io :as io]
    [clj-http.client :as client]
    [compojure.route :as route]
    [compojure.handler :as handler]
    [clojure.data.json :as json]
    [lamina.core :as lamina]))
+
+(def clients (atom []))
+(def history (atom '()))
 
 (def download-dir "/tmp/downloads/")
 (def mplayer-bin "/usr/local/bin/mplayer")
@@ -50,15 +54,14 @@
 (defn player []
   (loop-forever
    (fn []
-     (let [song @(lamina/read-channel play-channel)]
+     (let [[client song] @(lamina/read-channel play-channel)]
        ; Start downloading the next song
        (lamina/enqueue download-channel "")
        (println "[Player] Starting song:" song)
+       (swap! history (fn [hist] (take 100 (conj hist [client song]))))
        (play-song-mplayer song)
        (println "[Player] Finished song:" song)
        (.delete (java.io.File. song))))))
-
-(def clients (atom []))
 
 (defn rotate-clients []
   (let [c (first @clients)]
@@ -77,7 +80,7 @@
            (let [song (fetch-and-mark client)]
              (println "[Downloader] Queue song:" song)
              (if song
-               (lamina/enqueue play-channel song)
+               (lamina/enqueue play-channel [client song])
                (do
                  (println "Invalid song from client" client)
                  (Thread/sleep 2000)
@@ -98,10 +101,12 @@
         (let [body (json/read-str (slurp body))
               client (get body "client")]
           (swap! clients (fn [clients] (vec (distinct (concat [client] clients)))))
-
-          ;; Queue up a song from the new client
-          ;; (lamina/enqueue download-channel "")
           (json/write-str {:status "OK"})))
+  (GET "/history" {params :params}
+       (json/write-str
+        (map #(assoc (get (tags/metadata (second %)) :tags)
+                :client (first %))
+             (take (Integer/parseInt (or (:n params) "1")) @history))))
 
   (route/not-found "<h1>Page not found</h1>"))
 

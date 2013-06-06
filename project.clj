@@ -10,4 +10,5 @@
                  [lamina "0.5.0-rc2"]
                  [compojure "1.1.5"]
                  [ring/ring-core "1.1.8"]
-                 [ring/ring-jetty-adapter "1.1.8"]])
+                 [ring/ring-jetty-adapter "1.1.8"]
+                 [org/jaudiotagger "2.0.3"]])
