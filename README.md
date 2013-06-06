@@ -19,6 +19,8 @@ $ lein run client --port 10100 --file example.txt \
                   --bind <ip address of client>
 ```
 
+Specify a file of "-" to read the playlist from stdin
+
 The client will ping the server and start playing music. Any number of
 clients can connect to the music server. As songs complete each server
 is queried in a round-robin fashion for the next song to play.
