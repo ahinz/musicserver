@@ -11,6 +11,7 @@
    [compojure.route :as route]
    [compojure.handler :as handler]
    [clojure.data.json :as json]
+   [sounds.socketio :as sio]
    [lamina.core :as lamina]))
 
 (def clients (atom []))
@@ -21,6 +22,7 @@
 
 (def download-channel (lamina/channel))
 (def play-channel (lamina/channel))
+(def notice-channel (lamina/channel))
 
 (defn loop-forever [f]
   (doall (repeatedly f))) ; Since repeatedly is lazy, we wrap it in doall
@@ -60,10 +62,13 @@
        ; Start downloading the next song
        (lamina/enqueue download-channel "")
        (println "[Player] Starting song:" song)
-       (swap! history (fn [hist] (take 100 (conj hist {:client client
-                                                       :song song
-                                                       :meta (tags/metadata song)
-                                                       :dl-link dllink}))))
+       (let [song-record {:client client
+                          :song song
+                          :meta (tags/metadata song)
+                          :dl-link dllink}]
+         (swap! history (fn [hist] (take 100 (conj hist song-record))))
+         (lamina/enqueue notice-channel song-record))
+
        (play-song-mplayer song)
        (println "[Player] Finished song:" song)
        (.delete (java.io.File. song))))))
@@ -119,6 +124,10 @@
 
   (-> (Thread. downloader) .start)
   (-> (Thread. player) .start)
+
+  ;; Socket IO server
+  (sio/create-push-only-server "192.168.16.77" 3132 notice-channel)
+  (println "[SocketIO] Started socket server")
 
   (lamina/enqueue download-channel "")
 

@@ -12,4 +12,6 @@
                  [ring/ring-core "1.1.8"]
                  [ring/ring-jetty-adapter "1.1.8"]
                  [ring-cors "0.1.0"]
-                 [org/jaudiotagger "2.0.3"]])
+                 [org/jaudiotagger "2.0.3"]
+                 [com.corundumstudio.socketio/netty-socketio "1.0.0"]
+                 [org.slf4j/slf4j-simple "1.6.6"]])

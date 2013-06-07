@@ -8,7 +8,8 @@
   (let [meta (get song "meta")
         tags (get meta "tags")
         refs (get meta "refs")
-        artist (or (first (get tags "artist")) (first (get tags "album_artist")))
+        artist (or (first (get tags "artist"))
+                   (first (get tags "album_artist")))
         album (first (get tags "album"))
         title (first (get tags "title"))]
     [:div {:class "song well"}
@@ -31,6 +32,17 @@
      [:div {:style "clear: both"}]]))
 
 (defn ^:export init []
+  (def socket-addr "http://192.168.16.77:3132")
+  (def ajax-addr "http://localhost:3131/history?n=100")
+
+  (def socket (io.connect socket-addr))
+  (.on socket "newsong"
+       (fn [data]
+         (.log js/console "Rcvd" data)
+         (dommy/prepend!
+          (d/sel1 :#songs)
+          (song-template (js->clj (.parse js/JSON data))))))
+
   (def xhr (net/xhr-connection))
   (gevent/listen xhr :complete #(.log js/console "Received"
                                       (let [div (d/sel1 :#songs)]
@@ -40,6 +52,6 @@
                                                     js->clj)
                                               (-> % .-target .getResponseJson))))))
 
-  (net/transmit xhr "http://localhost:3131/history?n=100"))
+  (net/transmit xhr ajax-addr))
 
 (set! (.-onload js/window) init)
