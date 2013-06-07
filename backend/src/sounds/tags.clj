@@ -11,7 +11,10 @@
     (apply conj {}
            (filter (fn [[name val]] (and val (not (empty? val))))
                    (map (fn [[name val]]
-                          [name (seq (map #(. % getContent) (. tag (getFields val))))])
+                          [name (seq (map #(try
+                                             (. % getContent)
+                                             (catch Exception e (pritnln "Oops:" e)))
+                                          (. tag (getFields val))))])
                         fields)))))
 
 (defn audioheader [file]
@@ -21,9 +24,9 @@
   (java.net.URLEncoder/encode u))
 
 (defn- lookup-by-term [entity attr term aid]
-  (println               (str "https://itunes.apple.com/search?entity=" entity
-                   "&attribute=" attr
-                   "&term=" (url-encode term)))
+  (println (str "https://itunes.apple.com/search?entity=" entity
+                "&attribute=" attr
+                "&term=" (url-encode term)))
   (first
    (filter #(= aid (get % "artistId"))
            (get
