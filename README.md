@@ -45,6 +45,14 @@ $ python -m SimpleHTTPServer 8888
 
 And go to town!
 
+To install the netty websocket server you'll have to compile it yourself
+since it isn't in maven central (yet? Just got to v1.0 on June 7th)
+
+```bash
+git clone https://github.com/mrniko/netty-socketio
+mvn install
+```
+
 ## TODO
 
 - Clients that exit wont get removed--- doesn't cause issues but is
