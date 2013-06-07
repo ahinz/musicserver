@@ -36,29 +36,33 @@
                {:body (json/write-str {:song song})}))
 
 (defn fetch-and-mark [url]
-  (let [song (fetch-next-song url)]
+  (let [song (fetch-next-song url)
+        song-url (str url "/path?song="
+                      (java.net.URLEncoder/encode (or song "")))]
     (when song
       (let [buffer (byte-array 4000000)
             download-to (str download-dir (str (rand-int 1000000)) (.replaceAll song "/" "__"))]
        (mark-song-as-done url song)
-       (with-open [input (io/input-stream (str url "/path?song="
-                                               (java.net.URLEncoder/encode song)))
+       (with-open [input (io/input-stream song-url)
                    output (io/output-stream download-to)]
          (loop []
            (let [n (.read input buffer)]
              (when (> n 0)
                (.write output buffer 0 n)
                (recur)))))
-       download-to))))
+       [download-to song-url]))))
 
 (defn player []
   (loop-forever
    (fn []
-     (let [[client song] @(lamina/read-channel play-channel)]
+     (let [[client dllink song] @(lamina/read-channel play-channel)]
        ; Start downloading the next song
        (lamina/enqueue download-channel "")
        (println "[Player] Starting song:" song)
-       (swap! history (fn [hist] (take 100 (conj hist [client song]))))
+       (swap! history (fn [hist] (take 100 (conj hist {:client client
+                                                       :song song
+                                                       :meta (tags/metadata song)
+                                                       :dl-link dllink}))))
        (play-song-mplayer song)
        (println "[Player] Finished song:" song)
        (.delete (java.io.File. song))))))
@@ -77,10 +81,10 @@
            client (rotate-clients)]
        (if client
          (try
-           (let [song (fetch-and-mark client)]
+           (let [[song dllink] (fetch-and-mark client)]
              (println "[Downloader] Queue song:" song)
              (if song
-               (lamina/enqueue play-channel [client song])
+               (lamina/enqueue play-channel [client dllink song])
                (do
                  (println "Invalid song from client" client)
                  (Thread/sleep 2000)
@@ -104,9 +108,7 @@
           (json/write-str {:status "OK"})))
   (GET "/history" {params :params}
        (json/write-str
-        (map #(assoc (get (tags/metadata (second %)) :tags)
-                :client (first %))
-             (take (Integer/parseInt (or (:n params) "1")) @history))))
+        (take (Integer/parseInt (or (:n params) "1")) @history)))
 
   (route/not-found "<h1>Page not found</h1>"))
 
