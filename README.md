@@ -29,10 +29,26 @@ Right now clients aren't really dynamic; you provide them a "--file"
 argument with that contains a bunch of paths to music files (separated
 by newlines)
 
+## Frontend
+
+To run the webserver and see info about the currently playing songs
+compile the cljs files
+
+```bash
+$ lein cljsbuild once
+```
+
+And start a webserver
+```bash
+$ python -m SimpleHTTPServer 8888
+```
+
+And go to town!
+
 ## TODO
 
-- Dropping clients will probably cause a crash... probably should drop
-  them from the list
+- Clients that exit wont get removed--- doesn't cause issues but is
+  annoying
 
 - Using mplayer to play the music to avoid downloading a ton of java
   junk. Probably should download java junk to avoid the dependency
