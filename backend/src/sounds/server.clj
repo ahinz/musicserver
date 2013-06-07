@@ -4,6 +4,7 @@
    ring.adapter.jetty
    [clojure.java.shell :only [sh]])
   (:require
+   [ring.middleware.cors :as cors]
    [sounds.tags :as tags]
    [clojure.java.io :as io]
    [clj-http.client :as client]
@@ -122,4 +123,6 @@
   (lamina/enqueue download-channel "")
 
   ;; Start listener
-  (run-jetty (handler/site app) {:port 3131}))
+  (run-jetty (-> app
+                 (handler/site)
+                 (cors/wrap-cors :access-control-allow-origin #".*")) {:port 3131}))

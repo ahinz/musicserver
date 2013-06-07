@@ -1,3 +1,6 @@
+frontend/out
+frontend/repl
+frontend/resources/public/js/soundui.js
 target
 /lib
 /classes
