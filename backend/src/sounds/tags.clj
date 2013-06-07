@@ -13,7 +13,7 @@
                    (map (fn [[name val]]
                           [name (seq (map #(try
                                              (. % getContent)
-                                             (catch Exception e (pritnln "Oops:" e)))
+                                             (catch Exception e (println "Oops:" e)))
                                           (. tag (getFields val))))])
                         fields)))))
 
